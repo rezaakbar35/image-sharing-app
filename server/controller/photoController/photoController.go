@@ -1,7 +1,10 @@
 package photoController
 
 import (
+	"fmt"
 	"net/http"
+
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rezaakbar35/image-sharing-app/server/model"
@@ -41,7 +44,7 @@ func CreatePhoto(c *gin.Context) {
 	var photo model.Photo
 	user_id, _ := c.Get("user_id")
 
-	if err := c.ShouldBindJSON(&photo); err != nil {
+	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -52,7 +55,24 @@ func CreatePhoto(c *gin.Context) {
 		return
 	}
 
-	photo.UserId = userID
+	files := c.Request.MultipartForm.File["Photo"]
+	if len(files) == 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+
+	file := files[0]
+
+	filePath := "uploads/" + time.Now().Format("20060102150405") + file.Filename
+	if err := c.SaveUploadedFile(file, filePath); err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	photo.UserID = userID
+	photo.Title = c.Request.MultipartForm.Value["Title"][0]
+	photo.Caption = c.Request.MultipartForm.Value["Caption"][0]
+	photo.PhotoUrl = filePath // Use the file path as the URL
 
 	if err := model.DB.Create(&photo).Error; err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -84,17 +104,35 @@ func UpdatePhoto(c *gin.Context) {
 		return
 	}
 
-	if userID != photo.UserId {
+	if userID != photo.UserID {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	if err := c.ShouldBindJSON(&photo); err != nil {
+	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		fmt.Println(err)
 		return
 	}
 
-	// photo.UserId = userID
+	files := c.Request.MultipartForm.File["Photo"]
+	if len(files) == 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+
+	file := files[0]
+
+	filePath := "uploads/" + time.Now().Format("20060102150405") + file.Filename
+	if err := c.SaveUploadedFile(file, filePath); err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	photo.UserID = userID
+	photo.Title = c.Request.MultipartForm.Value["Title"][0]
+	photo.Caption = c.Request.MultipartForm.Value["Caption"][0]
+	photo.PhotoUrl = filePath // Use the file path as the URL
 
 	if err := model.DB.Save(&photo).Error; err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -126,7 +164,7 @@ func DeletePhoto(c *gin.Context) {
 		return
 	}
 
-	if userID != photo.UserId {
+	if userID != photo.UserID {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
