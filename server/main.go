@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rezaakbar35/image-sharing-app/server/controller/photoController"
 	"github.com/rezaakbar35/image-sharing-app/server/controller/userController"
@@ -15,6 +16,13 @@ func init() {
 
 func main() {
 	r := gin.Default()
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowCredentials: true,
+		AllowHeaders:     []string{"Authorization", "Content-Type"},
+	}))
 
 	r.GET("/api/users", userController.GetAllUser)
 	r.GET("/api/users/:id", userController.GetUserById)
