@@ -5,6 +5,7 @@ async function getAllPhotos() {
     const response = await instance.get("/photos");
     return response.data;
     } catch (error) {
+        console.log(error)
         throw new Error(error.response.data.message || "Something went wrong");
     }
 }
